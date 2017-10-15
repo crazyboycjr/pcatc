@@ -36,14 +36,16 @@ void report_error(int lineno, int column, const char *msg) {
 %}
 
 %x comment
+%x str
 LETTER	[a-zA-Z]
 DIGIT	[0-9]
 WS		[ \t]+
 INTEGER	{DIGIT}+
 REAL	{DIGIT}+"."{DIGIT}*
-STRING	\"[^\"]*\"
 
 %%
+	char string_buf[256];
+	char *string_buf_ptr;
 "(*" {
 	BEGIN(comment);
 }
@@ -55,6 +57,10 @@ STRING	\"[^\"]*\"
 }
 <comment>\n {
 	lineno++;
+}
+<comment><<EOF>> {
+	report_error(lineno, column, "unterminated comment");
+	exit(1);
 }
 <comment>"*)" {
 	BEGIN(INITIAL);
@@ -86,18 +92,47 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 {REAL} {
 	report("real", yytext);
 }
-{STRING} {
+
+
+\" {
+	string_buf_ptr = string_buf;
+	BEGIN(str);
+}
+<str>\" {
+	BEGIN(INITIAL);
+	*string_buf_ptr = '\0';
+	int length = string_buf_ptr - string_buf;
 	// STRING should be limited to 255 characters in length
-	if (yyleng - 2 > 255)
+	if (length > 255)
 		report_error(lineno, column, "invalid string, length exceed 255");
 
 	// STRING characters should be isprint,
-	for (char *c = yytext; c < yytext + yyleng; c++)
+	for (char *c = string_buf; *c != '\0'; c++)
 		if (!(isascii(*c) && isprint(*c)))
 			report_error(lineno, column, "invalid string, contains non printable ASCII characters");
 
-	report("string", yytext);
+	report("string", string_buf);
 }
+<str>\n {
+	// error - unterminated string
+	report_error(lineno, column, "unterminated string");
+
+	// Let's continue to parse the token
+	lineno++;
+	BEGIN(INITIAL);
+}
+<str><<EOF>> {
+	report_error(lineno, column, "unterminated string");
+	exit(1);
+}
+<str>[^\\\n"]+ {
+	// not backslash, not enter, not double quote
+	char *yptr = yytext;
+
+	while (*yptr)
+		*string_buf_ptr++ = *yptr++;
+}
+
 {LETTER}({LETTER}|{DIGIT})* {
 	// ID length should <= 255
 	if (yyleng > 255)
