@@ -2,7 +2,7 @@
 tests/
 
 # objs
-objs/
+obj/
 
 # ctags
 tags
