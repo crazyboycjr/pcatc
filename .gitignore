@@ -1,0 +1,42 @@
+# testcases
+tests/
+
+# objs
+objs/
+
+# ctags
+tags
+
+# cscope
+cscope.out
+cscope.in.out
+cscope.po.out
+
+# Object files
+*.o
+
+# Libraries
+*.a
+
+# Shared objects (inc. Windows DLLs)
+*.so
+*.so.*
+
+# Executables
+*.out
+
+# Editor temps
+*~
+
+# Tarball
+*.tar*
+
+# Vi swap files
+*.sw?
+
+# patch(1) remnants
+*.orig
+*.rej
+
+# PDF files
+*.pdf
