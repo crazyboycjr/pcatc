@@ -14,11 +14,11 @@ pcatc_BIN = $(OBJ_DIR)/pcatc
 
 all: $(pcatc_BIN)
 
-$(pcatc_BIN): main.c pcatc.yy.c
-	$(CC) -o $(pcatc_BIN) main.c pcatc.yy.c -lfl
+$(pcatc_BIN): main.c $(OBJ_DIR)/pcatc.yy.c
+	$(CC) -o $(pcatc_BIN) main.c $(OBJ_DIR)/pcatc.yy.c -lfl
 
-pcatc.yy.c: pcatc.l
-	$(LEX) -o pcatc.yy.c pcatc.l
+$(OBJ_DIR)/pcatc.yy.c: pcatc.l
+	$(LEX) -o $(OBJ_DIR)/pcatc.yy.c pcatc.l
 
 test: $(pcatc_BIN)
 	@bash test.sh $(testcases)

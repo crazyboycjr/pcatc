@@ -13,6 +13,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	yylex();
+	while (yylex() > 0) {}
 	return 0;
 }

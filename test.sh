@@ -3,7 +3,7 @@
 pcatc=obj/pcatc
 
 for file in $@; do
-	printf "[$file]"
+	printf "[$file]\n"
 	logfile=`basename $file`-log.txxt
 	$pcatc $file | tee $logfile
 	if [ $? -eq 0 ]; then
