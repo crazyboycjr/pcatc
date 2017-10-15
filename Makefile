@@ -6,7 +6,7 @@ LEX := flex
 YACC := bison
 
 TEST_DIR := tests
-testcases := $(TEST_DIR)/test01.pcat
+testcases := $(TEST_DIR)/test20.pcat
 #testcases := $(shell find $(TEST_DIR) -name "*.pcat")
 
 OBJ_DIR := obj

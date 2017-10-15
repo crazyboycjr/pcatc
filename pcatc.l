@@ -1,12 +1,25 @@
 %{
 #include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <errno.h>
+
 extern FILE *yyout;
 extern int yylineno;
+extern char filename[];
 int curcolumn = 1, lastline = 0;
 int lineno = 1, column = 1;
+
 void report(const char *type, char *text) {
 	fprintf(yyout, "At (%d, %d) Found %s: %s\n", lineno, column, type, text);
 }
+
+void report_error(int lineno, int column, const char *msg) {
+	fprintf(stderr, "\033[1;29m%s:%d:%d:\033[0m \033[1;31merror:\033[0m %s\n",
+			filename, lineno, column, msg);
+	//exit(0);
+}
+
 #define YY_USER_ACTION \
 	do { \
 		/* no multiple line keyword */ \
@@ -19,6 +32,7 @@ void report(const char *type, char *text) {
 			curcolumn = yyleng + 1; \
 		} \
 	} while (0);
+
 %}
 
 %x comment
@@ -61,21 +75,39 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 	report("delimiter", yytext);
 }
 {INTEGER} {
+	// should in range [0, 2^31-1]
+	long val;
+	errno = 0;
+	val = strtol(yytext, NULL, 10);
+	if (errno == ERANGE || val < 0 || val > 0x7fffffff)
+		report_error(lineno, column, "integer out of range");
 	report("integer", yytext);
 }
 {REAL} {
 	report("real", yytext);
 }
 {STRING} {
-	// STRING characters should be isprint
+	// STRING should be limited to 255 characters in length
+	if (yyleng - 2 > 255)
+		report_error(lineno, column, "invalid string, length exceed 255");
+
+	// STRING characters should be isprint,
+	for (char *c = yytext; c < yytext + yyleng; c++)
+		if (!(isascii(*c) && isprint(*c)))
+			report_error(lineno, column, "invalid string, contains non printable ASCII characters");
+
 	report("string", yytext);
 }
 {LETTER}({LETTER}|{DIGIT})* {
 	// ID length should <= 255
+	if (yyleng > 255)
+		report_error(lineno, column, "identifier length too long");
+
 	report("identifier", yytext);
 }
 . {
 	// report unrecognized characters
+	report_error(lineno, column, "unrecognized characters");
 	;
 }
 %%
