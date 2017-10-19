@@ -125,7 +125,7 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 	report_error(lineno, column, "unterminated string");
 	exit(1);
 }
-<str>[^\\\n"]+ {
+<str>[^\n"]+ {
 	// not backslash, not enter, not double quote
 	char *yptr = yytext;
 
