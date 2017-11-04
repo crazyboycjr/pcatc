@@ -1,6 +1,6 @@
 #!/bin/bash
 
-pcatc=obj/pcatc
+pcatc=./pcatc
 
 for file in $@; do
 	printf "[$file]\n"
