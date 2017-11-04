@@ -9,20 +9,28 @@ TEST_DIR := tests
 #testcases := $(TEST_DIR)/test20.pcat
 testcases := $(shell find $(TEST_DIR) -name "*.pcat")
 
-OBJ_DIR := obj
-pcatc_BIN = $(OBJ_DIR)/pcatc
+pcatc_BIN = pcatc
+
+CFLAGS := -c -ggdb3
+LDFLAGS := -lfl
+
+SRCS := $(wildcard *.c)
+OBJS := $(SRCS:.c=.o)
 
 all: $(pcatc_BIN)
 
-$(pcatc_BIN): main.c $(OBJ_DIR)/pcatc.yy.c
-	$(CC) -o $(pcatc_BIN) main.c $(OBJ_DIR)/pcatc.yy.c -lfl
+$(pcatc_BIN): $(OBJS) pcatc.yy.c
+	$(CC) -o $@ $^ $(LDFLAGS)
 
-$(OBJ_DIR)/pcatc.yy.c: pcatc.l
-	$(LEX) -o $(OBJ_DIR)/pcatc.yy.c pcatc.l
+pcatc.yy.c: pcatc.l
+	$(LEX) -o $@ $^
 
 test: $(pcatc_BIN)
 	@bash test.sh $(testcases)
 
 clean:
-	-rm -rf obj/*
+	-rm -rf $(OBJS)
 	-rm -rf pcatc.yy.c
+
+dist-clean:
+	-rm -f $(pcatc_BIN)
