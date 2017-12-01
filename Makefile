@@ -15,11 +15,12 @@ CFLAGS := -c -ggdb3
 LDFLAGS := -lfl
 
 SRCS := $(wildcard *.c)
-OBJS := $(SRCS:.c=.o)
+OBJS := $(SRCS:.c=.o) \
+		pcatc.yy.o
 
 all: $(pcatc_BIN)
 
-$(pcatc_BIN): $(OBJS) pcatc.yy.c
+$(pcatc_BIN): $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 pcatc.yy.c: pcatc.l
@@ -32,5 +33,5 @@ clean:
 	-rm -rf $(OBJS)
 	-rm -rf pcatc.yy.c
 
-dist-clean:
+dist-clean: clean
 	-rm -f $(pcatc_BIN)
