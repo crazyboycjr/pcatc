@@ -16,15 +16,21 @@ LDFLAGS := -lfl
 
 SRCS := $(wildcard *.c)
 OBJS := $(SRCS:.c=.o) \
-		pcatc.yy.o
+		pcatc.yy.o \
+		pcatc.tab.o
 
 all: $(pcatc_BIN)
 
 $(pcatc_BIN): $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-pcatc.yy.c: pcatc.l
+pcatc.yy.c: pcatc.l pcatc.tab.h
 	$(LEX) -o $@ $^
+
+pcatc.tab.h pcatc.tab.c: pcatc.y
+	$(YACC) -d $^
+
+pcatc.tab.o pcatc.yy.o: ast.h
 
 test: $(pcatc_BIN)
 	@bash test.sh $(testcases)
@@ -32,6 +38,7 @@ test: $(pcatc_BIN)
 clean:
 	-rm -rf $(OBJS)
 	-rm -rf pcatc.yy.c
+	-rm -rf pcatc.tab.c pcatc.tab.h
 
 dist-clean: clean
 	-rm -f $(pcatc_BIN)

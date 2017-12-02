@@ -3,6 +3,8 @@ pcatc
 
 # Temporary files
 *.yy.c
+*.tab.c
+*.tab.h
 
 # testcases
 tests/

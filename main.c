@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int yylex();
+extern int yyparse();
 extern FILE *yyin;
 char filename[256] = "stdin";
 
@@ -16,6 +16,5 @@ int main(int argc, char *argv[]) {
 		strncpy(filename, argv[1], sizeof filename);
 	}
 
-	while (yylex() > 0) {}
-	return 0;
+	return yyparse();
 }
