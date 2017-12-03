@@ -24,7 +24,7 @@ void yyerror(const char *msg) {
 	struct ast_node *val;
 }
 
-%token ARRAY BEGINN BY DO ELSE ELSIF END FOR IF IN IS LOOP OF OUT PROCEDURE PROGRAM RECORD THEN TO TYPE VAR WHILE
+%token ARRAY BEGINN BY DO END FOR IN IS LOOP OF OUT PROCEDURE PROGRAM RECORD TO TYPE VAR WHILE
 %token <val> INTEGER REAL
 %token <val> ID STRING
 %token <val> EXIT RETURN
@@ -36,12 +36,20 @@ void yyerror(const char *msg) {
 %left <val> '*' '/' DIV MOD AND
 %precedence <val> UNARY NOT
 
+//%right IF THEN ELSE ELSIF
+
+%precedence IF
+%precedence THEN
+%precedence ELSIF
+%precedence ELSE
+
 %left "OF"
 
 %type <val> program
 %type <val> body
 %type <val> statement statement_seq
 %type <val> write_params write_expr write_expr_comma_seq
+%type <val> if_statement elsif_statement elsif_statement_seq
 %type <val> expression
 %type <val> l_value l_value_comma_seq
 %type <val> actual_params expression_comma_seq
@@ -75,14 +83,29 @@ statement:
 | ID actual_params ';'			{ WORK("statement", $$, $1, $2); }
 | READ '(' l_value l_value_comma_seq ')' ';'	{ WORK("statement", $$, $1, $3, $4); }
 | WRITE write_params ';'		{ WORK("statement", $$, $1, $2); }
+| if_statement				{ WORK("statement", $$, $1); }
 | EXIT ';'				{ WORK("statement", $$, $1); }
 | RETURN ';'				{ WORK("statement", $$, $1); }
 | RETURN expression ';'			{ WORK("statement", $$, $1, $2); }
 ;
 
 statement_seq:				{ $$ = NULL; }
-| statement statement_seq		{ append($1, $2); }
+| statement statement_seq		{ append($1, $2); $$ = $1; }
 ;
+
+/* if-then-else-statement */
+if_statement:
+  IF expression THEN statement_seq
+  elsif_statement_seq END ';'		{ WORK("if-then-else-statement", $$, $2, $4, $5); }
+| IF expression THEN statement_seq
+  elsif_statement_seq
+  ELSE statement_seq END ';'		{ WORK("if-then-else-statement", $$, $2, $4, $5, $7); }
+
+elsif_statement:
+ELSIF expression THEN statement_seq	{ WORK("elsif-statement", $$, $2, $4); }
+
+elsif_statement_seq:			{ $$ = NULL; }
+| elsif_statement elsif_statement_seq	{ append($1, $2); $$ = $1; }
 
 write_params: /* TODO(cjr) do not build extra node */
   '(' write_expr write_expr_comma_seq ')'	{ WORK("write-params", $$, $2, $3); }
