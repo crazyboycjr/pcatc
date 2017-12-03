@@ -10,7 +10,11 @@ void yyerror(const char *msg) {
 	fprintf(stderr, "%s\n", msg);
 }
 
+/* YYPRINT is defined for use yytoknum[] */
 #define YYPRINT
+
+/* some macros for compress code */
+#define WORK(name, p, ...) p = new_node(name); insert(p, __VA_ARGS__)
 
 %}
 
@@ -55,40 +59,46 @@ PROGRAM IS body ';' {
 	ast_print_structure($$, 0);
 }
 ;
+
+
 body:
 BEGINN expression END {
 	$$ = new_node("body");
 	insert($$, $2);
 }
 ;
+
+
 expression:
-number binary_op number {
+number		{ $$ = new_node("expression"); insert($$, $1); }
+| number binary_op number {
 	$$ = new_node("expression");
-	insert($$, $1);
-	insert($$, $2);
-	insert($$, $3);
+	insert($$, $1, $2, $3);
 }
 ;
+
+
 number:
 INTEGER { $$ = new_node("number"); insert($$, $1); }
 | REAL { $$ = new_node("number"); insert($$, $1); }
 ;
 
+
 binary_op:
-'+'	{ $$ = new_node("binary-op"); insert($$, $1); }
-| '-'	{ $$ = new_node("binary-op"); insert($$, $1); }
-| '*'	{ $$ = new_node("binary-op"); insert($$, $1); }
-| '/'	{ $$ = new_node("binary-op"); insert($$, $1); }
-| DIV	{ $$ = new_node("binary-op"); insert($$, $1); }
-| MOD	{ $$ = new_node("binary-op"); insert($$, $1); }
-| OR	{ $$ = new_node("binary-op"); insert($$, $1); }
-| AND	{ $$ = new_node("binary-op"); insert($$, $1); }
-| '>'	{ $$ = new_node("binary-op"); insert($$, $1); }
-| '<'	{ $$ = new_node("binary-op"); insert($$, $1); }
-| '='	{ $$ = new_node("binary-op"); insert($$, $1); }
-| ">="	{ $$ = new_node("binary-op"); insert($$, $1); }
-| "<="	{ $$ = new_node("binary-op"); insert($$, $1); }
-| "<>"	{ $$ = new_node("binary-op"); insert($$, $1); }
+'+'	{ WORK("binary_op", $$, $1); }
+| '-'	{ WORK("binary_op", $$, $1); }
+| '*'	{ WORK("binary_op", $$, $1); }
+| '/'	{ WORK("binary_op", $$, $1); }
+| DIV	{ WORK("binary_op", $$, $1); }
+| MOD	{ WORK("binary_op", $$, $1); }
+| OR	{ WORK("binary_op", $$, $1); }
+| AND	{ WORK("binary_op", $$, $1); }
+| '>'	{ WORK("binary_op", $$, $1); }
+| '<'	{ WORK("binary_op", $$, $1); }
+| '='	{ WORK("binary_op", $$, $1); }
+| ">="	{ WORK("binary_op", $$, $1); }
+| "<="	{ WORK("binary_op", $$, $1); }
+| "<>"	{ WORK("binary_op", $$, $1); }
 ;
 %%
 

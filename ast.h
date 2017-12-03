@@ -11,7 +11,7 @@ struct ast_node {
 
 static struct ast_node pool[100000];
 
-static inline struct ast_node *new_node(char *name)
+static inline struct ast_node *ast_new_node(char *name)
 {
 	static int top = 0;
 	struct ast_node *p = &pool[top++];
@@ -31,7 +31,7 @@ static void ast_print_structure(struct ast_node *root, int depth)
 	ast_print_structure(root->rb, depth);
 }
 
-static inline void insert(struct ast_node *a, struct ast_node *b)
+static inline void ast_insert(struct ast_node *a, struct ast_node *b)
 {
 	struct ast_node *lc = a->lc;
 	if (!lc) {
@@ -43,3 +43,24 @@ static inline void insert(struct ast_node *a, struct ast_node *b)
 	lc->rb = b;
 }
 
+#define new_node(args...) ast_new_node(args)
+
+#define INSERT_2(a, b) ast_insert(a, b)
+#define INSERT_3(a, b, c) INSERT_2(a, b), ast_insert(a, c)
+#define INSERT_4(a, b, c, d) INSERT_3(a, b, c), ast_insert(a, d)
+#define INSERT_5(a, b, c, d, e) INSERT_4(a, b, c, d), ast_insert(a, e)
+#define INSERT_6(a, b, c, d, e, f) INSERT_5(a, b, c, d, e), ast_insert(a, f)
+#define INSERT_7(a, b, c, d, e, f, g) INSERT_6(a, b, c, d, e, f), ast_insert(a, g)
+#define INSERT_N(N, ...) INSERT_##N(__VA_ARGS__)
+
+#define _NUM_ARGS(X, X6, X5, X4, X3, X2, X1, N, ...) N
+#define NUM_ARGS(...) _NUM_ARGS(0, ##__VA_ARGS__, 6, 5, 4, 3, 2, 1, 0)
+
+//#define _INSERT_MACRO_CHOOSE(N, ...) INSERT_N(N, __VA_ARGS__)
+//#define INSERT_MACRO_CHOOSE(...) _INSERT_MACRO_CHOOSE(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)
+
+#define _GENERAL_MACRO_CHOOSE(macro, n, ...) macro##_N(n, __VA_ARGS__)
+#define GENERAL_MACRO_CHOOSE(macro, ...) _GENERAL_MACRO_CHOOSE(macro, NUM_ARGS(__VA_ARGS__), __VA_ARGS__)
+
+//#define insert(args...) INSERT_MACRO_CHOOSE(args)
+#define insert(args...) GENERAL_MACRO_CHOOSE(INSERT, args)
