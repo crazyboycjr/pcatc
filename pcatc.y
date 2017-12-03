@@ -24,29 +24,20 @@ void yyerror(const char *msg) {
 	struct ast_node *val;
 }
 
-%token ARRAY BEGINN BY DO ELSE ELSIF END EXIT FOR IF IN IS LOOP NOT OF OUT PROCEDURE PROGRAM READ RECORD RETURN THEN TO TYPE VAR WHILE WRITE
+%token ARRAY BEGINN BY DO ELSE ELSIF END EXIT FOR IF IN IS LOOP OF OUT PROCEDURE PROGRAM READ RECORD RETURN THEN TO TYPE VAR WHILE WRITE
 %token <val> INTEGER REAL
 
 /* binary-op */
-%token <val> ADD '+'
-%token <val> SUB '-'
-%token <val> MUL '*'
-%token <val> DIV2 '/'
-%token <val> DIV
-%token <val> MOD
-%token <val> OR
-%token <val> AND
-%token <val> GT '>'
-%token <val> LT '<'
-%token <val> EQ '='
-%token <val> GE ">="
-%token <val> LE "<="
-%token <val> NE "<>"
+%left <val> '+' '-' OR
+%left <val> '*' '/' DIV MOD AND
+%left <val> '>' '<' '=' ">=" "<=" "<>"
+%precedence <val> UNARY NOT
 
 %type <val> program
 %type <val> body
 %type <val> expression
 %type <val> number
+%type <val> unary_op
 %type <val> binary_op
 
 %%
@@ -70,35 +61,39 @@ BEGINN expression END {
 
 
 expression:
-number		{ $$ = new_node("expression"); insert($$, $1); }
-| number binary_op number {
-	$$ = new_node("expression");
-	insert($$, $1, $2, $3);
-}
+  number		{ WORK("expression", $$, $1); }
+| '(' expression ')'	{ WORK("expression", $$, $2); } /* put away the '()' */
+| unary_op expression	{ WORK("expression", $$, $1, $2); }
+| expression binary_op expression { WORK("expression", $$, $1, $2, $3); }
 ;
 
 
-number:
-INTEGER { $$ = new_node("number"); insert($$, $1); }
-| REAL { $$ = new_node("number"); insert($$, $1); }
+number: /* done */
+INTEGER	{ WORK("number", $$, $1); }
+| REAL	{ WORK("number", $$, $1); }
 ;
 
+unary_op:
+  '+' %prec UNARY { WORK("unary-op", $$, $1); }
+| '-' %prec UNARY { WORK("unary-op", $$, $1); }
+| NOT		{ WORK("unary-op", $$, $1); }
+;
 
-binary_op:
-'+'	{ WORK("binary_op", $$, $1); }
-| '-'	{ WORK("binary_op", $$, $1); }
-| '*'	{ WORK("binary_op", $$, $1); }
-| '/'	{ WORK("binary_op", $$, $1); }
-| DIV	{ WORK("binary_op", $$, $1); }
-| MOD	{ WORK("binary_op", $$, $1); }
-| OR	{ WORK("binary_op", $$, $1); }
-| AND	{ WORK("binary_op", $$, $1); }
-| '>'	{ WORK("binary_op", $$, $1); }
-| '<'	{ WORK("binary_op", $$, $1); }
-| '='	{ WORK("binary_op", $$, $1); }
-| ">="	{ WORK("binary_op", $$, $1); }
-| "<="	{ WORK("binary_op", $$, $1); }
-| "<>"	{ WORK("binary_op", $$, $1); }
+binary_op: /* done */
+  '+'	{ WORK("binary-op", $$, $1); }
+| '-'	{ WORK("binary-op", $$, $1); }
+| '*'	{ WORK("binary-op", $$, $1); }
+| '/'	{ WORK("binary-op", $$, $1); }
+| DIV	{ WORK("binary-op", $$, $1); }
+| MOD	{ WORK("binary-op", $$, $1); }
+| OR	{ WORK("binary-op", $$, $1); }
+| AND	{ WORK("binary-op", $$, $1); }
+| '>'	{ WORK("binary-op", $$, $1); }
+| '<'	{ WORK("binary-op", $$, $1); }
+| '='	{ WORK("binary-op", $$, $1); }
+| ">="	{ WORK("binary-op", $$, $1); }
+| "<="	{ WORK("binary-op", $$, $1); }
+| "<>"	{ WORK("binary-op", $$, $1); }
 ;
 %%
 
