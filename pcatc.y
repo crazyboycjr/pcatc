@@ -24,9 +24,11 @@ void yyerror(const char *msg) {
 	struct ast_node *val;
 }
 
-%token ARRAY BEGINN BY DO ELSE ELSIF END EXIT FOR IF IN IS LOOP OF OUT PROCEDURE PROGRAM READ RECORD RETURN THEN TO TYPE VAR WHILE WRITE
+%token ARRAY BEGINN BY DO ELSE ELSIF END FOR IF IN IS LOOP OF OUT PROCEDURE PROGRAM RECORD THEN TO TYPE VAR WHILE
 %token <val> INTEGER REAL
 %token <val> ID STRING
+%token <val> EXIT RETURN
+%token <val> READ WRITE
 
 /* binary-op */
 %left <val> '>' '<' '=' ">=" "<=" "<>"
@@ -38,11 +40,13 @@ void yyerror(const char *msg) {
 
 %type <val> program
 %type <val> body
+%type <val> statement statement_seq
+%type <val> write_params write_expr write_expr_comma_seq
 %type <val> expression
-%type <val> l_value
-%type <val> actual_params expression_comma_list
-%type <val> comp_values comp_value comp_value_comma_list
-%type <val> array_values array_value array_value_comma_list
+%type <val> l_value l_value_comma_seq
+%type <val> actual_params expression_comma_seq
+%type <val> comp_values comp_value comp_value_semicolon_seq
+%type <val> array_values array_value array_value_comma_seq
 %type <val> number
 %type <val> unary_op
 %type <val> binary_op1 binary_op2 binary_op3
@@ -60,12 +64,38 @@ PROGRAM IS body ';' {
 
 
 body:
-BEGINN expression END {
+BEGINN statement_seq END {
 	$$ = new_node("body");
 	insert($$, $2);
 }
 ;
 
+statement:
+  l_value ":=" expression ';'		{ WORK("statement", $$, $1, $3); }
+| ID actual_params ';'			{ WORK("statement", $$, $1, $2); }
+| READ '(' l_value l_value_comma_seq ')' ';'	{ WORK("statement", $$, $1, $3, $4); }
+| WRITE write_params ';'		{ WORK("statement", $$, $1, $2); }
+| EXIT ';'				{ WORK("statement", $$, $1); }
+| RETURN ';'				{ WORK("statement", $$, $1); }
+| RETURN expression ';'			{ WORK("statement", $$, $1, $2); }
+;
+
+statement_seq:				{ $$ = NULL; }
+| statement statement_seq		{ append($1, $2); }
+;
+
+write_params: /* TODO(cjr) do not build extra node */
+  '(' write_expr write_expr_comma_seq ')'	{ WORK("write-params", $$, $2, $3); }
+| '(' ')'	{ struct ast_node *p = new_node("()"); WORK("write-params", $$, p); }
+;
+
+write_expr:
+  STRING				{ WORK("write-expr", $$, $1); }
+| expression				{ WORK("write-expr", $$, $1); }
+;
+
+write_expr_comma_seq:			{ $$ = NULL; }
+| ',' write_expr write_expr_comma_seq	{ append($2, $3); $$ = $2; }
 
 expression:
   number		{ WORK("expression", $$, $1); }
@@ -87,36 +117,36 @@ l_value:
 | l_value '[' expression ']' { WORK("l-value", $$, $1, $3); }
 ;
 
+l_value_comma_seq:			{ $$ = NULL; }
+| ',' l_value l_value_comma_seq		{ append($2, $3); $$ = $2; }
+
 actual_params: /* done */
-'(' expression_comma_list ')' { WORK("actual-prarms", $$, $2); }
+'(' expression expression_comma_seq ')' { WORK("actual-prarms", $$, $2, $3); }
 | '(' ')'	{ struct ast_node *p = new_node("()"); WORK("actual-params", $$, p); }
 ;
 
-expression_comma_list: /* done */
-expression
-| expression_comma_list ',' expression { append($$, $3); }
+expression_comma_seq: /* done */	{ $$ = NULL; }
+| ',' expression expression_comma_seq	{ append($2, $3); $$ = $2; }
 ;
 
 comp_values:
-'{' comp_value_comma_list '}'		{ WORK("comp_values", $$, $2); }
+'{' comp_value comp_value_semicolon_seq '}'	{ WORK("comp-values", $$, $2, $3); }
 ;
 
-comp_value_comma_list:
-comp_value
-| comp_value_comma_list ';' comp_value	{ append($$, $3); }
+comp_value_semicolon_seq:			{ $$ = NULL; }
+| ';' comp_value comp_value_semicolon_seq	{ append($2, $3); $$ = $2; }
 ;
 
 comp_value:
-ID ":=" expression			{ WORK("comp_value", $$, $1, $3); }
+ID ":=" expression				{ WORK("comp-value", $$, $1, $3); }
 ;
 
 array_values:
-"[<" array_value_comma_list ">]"	{ WORK("array_values", $$, $2); }
+"[<" array_value array_value_comma_seq ">]"	{ WORK("array-values", $$, $2, $3); }
 ;
 
-array_value_comma_list:
-array_value
-| array_value_comma_list ',' array_value { append($$, $3); }
+array_value_comma_seq:				{ $$ = NULL; }
+| ',' array_value array_value_comma_seq		{ append($2, $3); $$ = $2; }
 ;
 
 array_value:
