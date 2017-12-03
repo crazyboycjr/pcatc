@@ -64,6 +64,8 @@ static inline void ast_append(struct ast_node *a, struct ast_node *b)
 #define INSERT_5(a, b, c, d, e) INSERT_4(a, b, c, d), ast_insert(a, e)
 #define INSERT_6(a, b, c, d, e, f) INSERT_5(a, b, c, d, e), ast_insert(a, f)
 #define INSERT_7(a, b, c, d, e, f, g) INSERT_6(a, b, c, d, e, f), ast_insert(a, g)
+#define INSERT_8(a, b, c, d, e, f, g, h) INSERT_7(a, b, c, d, e, f, g), ast_insert(a, h)
+#define INSERT_9(a, b, c, d, e, f, g, h, i) INSERT_8(a, b, c, d, e, f, g, h), ast_insert(a, i)
 #define INSERT_N(N, ...) INSERT_##N(__VA_ARGS__)
 
 #define APPEND_1(a)
@@ -76,8 +78,8 @@ static inline void ast_append(struct ast_node *a, struct ast_node *b)
 #define APPEND_N(N, ...) APPEND_##N(__VA_ARGS__)
 
 
-#define _NUM_ARGS(X, X6, X5, X4, X3, X2, X1, N, ...) N
-#define NUM_ARGS(...) _NUM_ARGS(0, ##__VA_ARGS__, 6, 5, 4, 3, 2, 1, 0)
+#define _NUM_ARGS(X, X10, X9, X8, X7, X6, X5, X4, X3, X2, X1, N, ...) N
+#define NUM_ARGS(...) _NUM_ARGS(0, ##__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
 
 //#define _INSERT_MACRO_CHOOSE(N, ...) INSERT_N(N, __VA_ARGS__)
 //#define INSERT_MACRO_CHOOSE(...) _INSERT_MACRO_CHOOSE(NUM_ARGS(__VA_ARGS__), __VA_ARGS__)

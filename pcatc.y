@@ -24,7 +24,7 @@ void yyerror(const char *msg) {
 	struct ast_node *val;
 }
 
-%token ARRAY BEGINN BY DO END FOR IN IS LOOP OF OUT PROCEDURE PROGRAM RECORD TO TYPE VAR WHILE
+%token <val> ARRAY BEGINN BY DO END FOR IN IS LOOP OF OUT PROCEDURE PROGRAM RECORD TO TYPE VAR WHILE
 %token <val> INTEGER REAL
 %token <val> ID STRING
 %token <val> EXIT RETURN
@@ -38,10 +38,10 @@ void yyerror(const char *msg) {
 
 //%right IF THEN ELSE ELSIF
 
-%precedence IF
-%precedence THEN
-%precedence ELSIF
-%precedence ELSE
+%precedence <val> IF
+%precedence <val> THEN
+%precedence <val> ELSIF
+%precedence <val> ELSE
 
 %left "OF"
 
@@ -79,14 +79,20 @@ BEGINN statement_seq END {
 ;
 
 statement:
-  l_value ":=" expression ';'		{ WORK("statement", $$, $1, $3); }
-| ID actual_params ';'			{ WORK("statement", $$, $1, $2); }
-| READ '(' l_value l_value_comma_seq ')' ';'	{ WORK("statement", $$, $1, $3, $4); }
-| WRITE write_params ';'		{ WORK("statement", $$, $1, $2); }
-| if_statement				{ WORK("statement", $$, $1); }
-| EXIT ';'				{ WORK("statement", $$, $1); }
-| RETURN ';'				{ WORK("statement", $$, $1); }
-| RETURN expression ';'			{ WORK("statement", $$, $1, $2); }
+  l_value ":=" expression ';'		{ WORK("assignment statement", $$, $1, $3); }
+| ID actual_params ';'			{ WORK("procedure call statement", $$, $1, $2); }
+| READ '(' l_value l_value_comma_seq ')' ';'	{ WORK("read statement", $$, $1, $3, $4); }
+| WRITE write_params ';'		{ WORK("write statement", $$, $1, $2); }
+| if_statement				{ WORK("if-then-else statement", $$, $1); }
+| WHILE expression DO statement_seq END ';'	{ WORK("while statement", $$, $1, $2, $3, $4); }
+| LOOP statement_seq END ';'		{ WORK("loop statement", $$, $1, $2); }
+| FOR ID ":=" expression TO expression
+  DO statement_seq END ';'		{ WORK("for statement", $$, $2, $4, $5, $6, $7, $8); }
+| FOR ID ":=" expression TO expression
+  BY expression DO statement_seq END ';'{ WORK("for statement", $$, $2, $4, $5, $6, $7, $8, $9, $10); }
+| EXIT ';'				{ WORK("exit statement", $$, $1); }
+| RETURN ';'				{ WORK("return etatement", $$, $1); }
+| RETURN expression ';'			{ WORK("return statement", $$, $1, $2); }
 ;
 
 statement_seq:				{ $$ = NULL; }
@@ -96,10 +102,10 @@ statement_seq:				{ $$ = NULL; }
 /* if-then-else-statement */
 if_statement:
   IF expression THEN statement_seq
-  elsif_statement_seq END ';'		{ WORK("if-then-else-statement", $$, $2, $4, $5); }
+  elsif_statement_seq END ';'		{ WORK("if-then statement", $$, $1, $2, $3, $4, $5); }
 | IF expression THEN statement_seq
   elsif_statement_seq
-  ELSE statement_seq END ';'		{ WORK("if-then-else-statement", $$, $2, $4, $5, $7); }
+  ELSE statement_seq END ';'		{ WORK("if-then-else statement", $$, $1, $2, $3, $4, $5, $6, $7); }
 
 elsif_statement:
 ELSIF expression THEN statement_seq	{ WORK("elsif-statement", $$, $2, $4); }
@@ -121,17 +127,17 @@ write_expr_comma_seq:			{ $$ = NULL; }
 | ',' write_expr write_expr_comma_seq	{ append($2, $3); $$ = $2; }
 
 expression:
-  number		{ WORK("expression", $$, $1); }
-| l_value		{ WORK("expression", $$, $1); }
-| '(' expression ')'	{ WORK("expression", $$, $2); } /* put away the '()' */
-| unary_op expression %prec UNARY { WORK("expression", $$, $1, $2); }
+  number		{ WORK("simple expression", $$, $1); }
+| l_value		{ WORK("simple expression", $$, $1); }
+| '(' expression ')'	{ WORK("simple expression", $$, $2); } /* put away the '()' */
+| unary_op expression %prec UNARY { WORK("unary-op expression", $$, $1, $2); }
 /* expand binary_op */
-| expression binary_op1 expression %prec '>' { WORK("expression", $$, $1, $2, $3); }
-| expression binary_op2 expression %prec '+' { WORK("expression", $$, $1, $2, $3); }
-| expression binary_op3 expression %prec '*' { WORK("expression", $$, $1, $2, $3); }
-| ID actual_params	{ WORK("expression", $$, $1, $2); }
-| ID comp_values	{ WORK("expression", $$, $1, $2); }
-| ID array_values	{ WORK("expression", $$, $1, $2); }
+| expression binary_op1 expression %prec '>' { WORK("binary-op expression", $$, $1, $2, $3); }
+| expression binary_op2 expression %prec '+' { WORK("binary-op expression", $$, $1, $2, $3); }
+| expression binary_op3 expression %prec '*' { WORK("binary-op expression", $$, $1, $2, $3); }
+| ID actual_params	{ WORK("procedure call expression", $$, $1, $2); }
+| ID comp_values	{ WORK("record construction expression", $$, $1, $2); }
+| ID array_values	{ WORK("array construction expression", $$, $1, $2); }
 ;
 
 l_value:
