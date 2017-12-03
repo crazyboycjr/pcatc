@@ -93,6 +93,7 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 	yylval.val = new_node(yytext);
 	if (strcmp(yytext, "BEGIN") == 0)
 		return BEGINN;
+
 	return get_token_code(yytext, 0);
 }
 ":="|"+"|"-"|"*"|"/"|"<"|"<="|">"|">="|"="|"<>" {
@@ -101,6 +102,7 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 	yylval.val = new_node(yytext);
 	if (strlen(yytext) == 1)
 		return yytext[0];
+
 	return get_token_code(yytext, 1);
 }
 ":"|";"|","|"."|"("|")"|"["|"]"|"{"|"}"|"[<"|">]"|"\\" {
@@ -109,6 +111,7 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 	yylval.val = new_node(yytext);
 	if (strlen(yytext) == 1)
 		return yytext[0];
+
 	return get_token_code(yytext, 1);
 }
 {INTEGER} {
@@ -118,6 +121,7 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 	val = strtol(yytext, NULL, 10);
 	if (errno == ERANGE || val < 0 || val > 0x7fffffff)
 		report_error("integer out of range");
+
 	report("integer", yytext);
 
 	yylval.val = new_node(yytext);
@@ -149,6 +153,9 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 			report_error("invalid string, contains non printable ASCII characters");
 
 	report("string", string_buf);
+
+	yylval.val = new_node(string_buf);
+	return STRING;
 }
 <str>\n {
 	// error - unterminated string
@@ -176,6 +183,9 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 		report_error("identifier length too long");
 
 	report("identifier", yytext);
+
+	yylval.val = new_node(yytext);
+	return ID;
 }
 . {
 	// report unrecognized characters

@@ -43,8 +43,21 @@ static inline void ast_insert(struct ast_node *a, struct ast_node *b)
 	lc->rb = b;
 }
 
+static inline void ast_append(struct ast_node *a, struct ast_node *b)
+{
+	struct ast_node *rb = a->rb;
+	if (!rb) {
+		a->rb = b;
+		return;
+	}
+	while (rb->rb)
+		rb = rb->rb;
+	rb->rb = b;
+}
+
 #define new_node(args...) ast_new_node(args)
 
+#define INSERT_1(a)
 #define INSERT_2(a, b) ast_insert(a, b)
 #define INSERT_3(a, b, c) INSERT_2(a, b), ast_insert(a, c)
 #define INSERT_4(a, b, c, d) INSERT_3(a, b, c), ast_insert(a, d)
@@ -52,6 +65,16 @@ static inline void ast_insert(struct ast_node *a, struct ast_node *b)
 #define INSERT_6(a, b, c, d, e, f) INSERT_5(a, b, c, d, e), ast_insert(a, f)
 #define INSERT_7(a, b, c, d, e, f, g) INSERT_6(a, b, c, d, e, f), ast_insert(a, g)
 #define INSERT_N(N, ...) INSERT_##N(__VA_ARGS__)
+
+#define APPEND_1(a)
+#define APPEND_2(a, b) ast_append(a, b)
+#define APPEND_3(a, b, c) APPEND_2(a, b), ast_append(a, c)
+#define APPEND_4(a, b, c, d) APPEND_3(a, b, c), ast_append(a, d)
+#define APPEND_5(a, b, c, d, e) APPEND_4(a, b, c, d), ast_append(a, e)
+#define APPEND_6(a, b, c, d, e, f) APPEND_5(a, b, c, d, e), ast_append(a, f)
+#define APPEND_7(a, b, c, d, e, f, g) APPEND_6(a, b, c, d, e, f), ast_append(a, g)
+#define APPEND_N(N, ...) APPEND_##N(__VA_ARGS__)
+
 
 #define _NUM_ARGS(X, X6, X5, X4, X3, X2, X1, N, ...) N
 #define NUM_ARGS(...) _NUM_ARGS(0, ##__VA_ARGS__, 6, 5, 4, 3, 2, 1, 0)
@@ -64,3 +87,4 @@ static inline void ast_insert(struct ast_node *a, struct ast_node *b)
 
 //#define insert(args...) INSERT_MACRO_CHOOSE(args)
 #define insert(args...) GENERAL_MACRO_CHOOSE(INSERT, args)
+#define append(args...) GENERAL_MACRO_CHOOSE(APPEND, args)

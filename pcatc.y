@@ -14,7 +14,7 @@ void yyerror(const char *msg) {
 #define YYPRINT
 
 /* some macros for compress code */
-#define WORK(name, p, ...) p = new_node(name); insert(p, __VA_ARGS__)
+#define WORK(name, p, ...) p = new_node(name); insert(p, ##__VA_ARGS__)
 
 %}
 
@@ -26,6 +26,7 @@ void yyerror(const char *msg) {
 
 %token ARRAY BEGINN BY DO ELSE ELSIF END EXIT FOR IF IN IS LOOP OF OUT PROCEDURE PROGRAM READ RECORD RETURN THEN TO TYPE VAR WHILE WRITE
 %token <val> INTEGER REAL
+%token <val> ID STRING
 
 /* binary-op */
 %left <val> '>' '<' '=' ">=" "<=" "<>"
@@ -33,9 +34,15 @@ void yyerror(const char *msg) {
 %left <val> '*' '/' DIV MOD AND
 %precedence <val> UNARY NOT
 
+%left "OF"
+
 %type <val> program
 %type <val> body
 %type <val> expression
+%type <val> l_value
+%type <val> actual_params expression_comma_list
+%type <val> comp_values comp_value comp_value_comma_list
+%type <val> array_values array_value array_value_comma_list
 %type <val> number
 %type <val> unary_op
 %type <val> binary_op1 binary_op2 binary_op3
@@ -62,12 +69,59 @@ BEGINN expression END {
 
 expression:
   number		{ WORK("expression", $$, $1); }
+| l_value		{ WORK("expression", $$, $1); }
 | '(' expression ')'	{ WORK("expression", $$, $2); } /* put away the '()' */
 | unary_op expression %prec UNARY { WORK("expression", $$, $1, $2); }
 /* expand binary_op */
 | expression binary_op1 expression %prec '>' { WORK("expression", $$, $1, $2, $3); }
 | expression binary_op2 expression %prec '+' { WORK("expression", $$, $1, $2, $3); }
 | expression binary_op3 expression %prec '*' { WORK("expression", $$, $1, $2, $3); }
+| ID actual_params	{ WORK("expression", $$, $1, $2); }
+| ID comp_values	{ WORK("expression", $$, $1, $2); }
+| ID array_values	{ WORK("expression", $$, $1, $2); }
+;
+
+l_value:
+  ID			{ WORK("l-value", $$, $1); }
+| l_value '.' ID	{ WORK("l-value", $$, $1, $3); }
+| l_value '[' expression ']' { WORK("l-value", $$, $1, $3); }
+;
+
+actual_params: /* done */
+'(' expression_comma_list ')' { WORK("actual-prarms", $$, $2); }
+| '(' ')'	{ struct ast_node *p = new_node("()"); WORK("actual-params", $$, p); }
+;
+
+expression_comma_list: /* done */
+expression
+| expression_comma_list ',' expression { append($$, $3); }
+;
+
+comp_values:
+'{' comp_value_comma_list '}'		{ WORK("comp_values", $$, $2); }
+;
+
+comp_value_comma_list:
+comp_value
+| comp_value_comma_list ';' comp_value	{ append($$, $3); }
+;
+
+comp_value:
+ID ":=" expression			{ WORK("comp_value", $$, $1, $3); }
+;
+
+array_values:
+"[<" array_value_comma_list ">]"	{ WORK("array_values", $$, $2); }
+;
+
+array_value_comma_list:
+array_value
+| array_value_comma_list ',' array_value { append($$, $3); }
+;
+
+array_value:
+expression			{ WORK("array-value", $$, $1); }
+| expression "OF" expression	{ WORK("array-value", $$, $1, $3); }
 ;
 
 
