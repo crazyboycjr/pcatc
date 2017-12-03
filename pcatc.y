@@ -24,7 +24,7 @@ void yyerror(const char *msg) {
 	struct ast_node *val;
 }
 
-%token <val> ARRAY BEGINN BY DO END FOR IN IS LOOP OF OUT PROCEDURE PROGRAM RECORD TO TYPE VAR WHILE
+%token <val> ARRAY BEGINN BY DO END FOR IN IS LOOP OUT PROCEDURE PROGRAM RECORD TO TYPE VAR WHILE
 %token <val> INTEGER REAL
 %token <val> ID STRING
 %token <val> EXIT RETURN
@@ -43,10 +43,14 @@ void yyerror(const char *msg) {
 %precedence <val> ELSIF
 %precedence <val> ELSE
 
-%left "OF"
+%left <val> OF "OF"
 
 %type <val> program
 %type <val> body
+%type <val> declaration declaration_seq
+%type <val> var_decl var_decl_seq id_comma_seq
+%type <val> type
+%type <val> component component_seq
 %type <val> statement statement_seq
 %type <val> write_params write_expr write_expr_comma_seq
 %type <val> if_statement elsif_statement elsif_statement_seq
@@ -70,20 +74,51 @@ PROGRAM IS body ';' {
 }
 ;
 
-
 body:
-BEGINN statement_seq END {
-	$$ = new_node("body");
-	insert($$, $2);
-}
+declaration_seq BEGINN statement_seq END	{ WORK("body", $$, $1, $3); }
 ;
 
-statement:
+declaration:
+  VAR var_decl_seq			{ WORK("var declaration", $$, $1, $2); }
+;
+
+declaration_seq:			{ $$ = NULL; }
+| declaration declaration_seq		{ append($1, $2); $$ = $1; }
+;
+
+var_decl:
+  ID id_comma_seq ":=" expression ';'	{ WORK("var-decl", $$, $1, $2, $4); }
+| ID id_comma_seq ':' type ":=" expression ';' { WORK("var-decl", $$, $1, $2, $4, $6); }
+;
+
+var_decl_seq:				{ $$ = NULL; }
+| var_decl var_decl_seq			{ append($1, $2); $$ = $1; }
+;
+
+id_comma_seq:				{ $$ = NULL; }
+| ',' ID id_comma_seq			{ append($2, $3); $$ = $2; }
+;
+
+type:
+  ID					{ WORK("type", $$, $1); }
+| ARRAY OF type				{ WORK("array type", $$, $3); }
+| RECORD component component_seq END	{ WORK("record type", $$, $1, $2, $3); }
+;
+
+component:
+ID ':' type ';'				{ WORK("component", $$, $1, $3); }
+;
+
+component_seq:				{ $$ = NULL; }
+| component component_seq		{ append($1, $2); $$ = $1; }
+;
+
+statement: /* done */
   l_value ":=" expression ';'		{ WORK("assignment statement", $$, $1, $3); }
 | ID actual_params ';'			{ WORK("procedure call statement", $$, $1, $2); }
 | READ '(' l_value l_value_comma_seq ')' ';'	{ WORK("read statement", $$, $1, $3, $4); }
 | WRITE write_params ';'		{ WORK("write statement", $$, $1, $2); }
-| if_statement				{ WORK("if-then-else statement", $$, $1); }
+| if_statement
 | WHILE expression DO statement_seq END ';'	{ WORK("while statement", $$, $1, $2, $3, $4); }
 | LOOP statement_seq END ';'		{ WORK("loop statement", $$, $1, $2); }
 | FOR ID ":=" expression TO expression
@@ -180,7 +215,7 @@ array_value_comma_seq:				{ $$ = NULL; }
 
 array_value:
 expression			{ WORK("array-value", $$, $1); }
-| expression "OF" expression	{ WORK("array-value", $$, $1, $3); }
+| expression OF expression	{ WORK("array-value", $$, $1, $3); }
 ;
 
 

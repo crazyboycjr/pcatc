@@ -154,7 +154,11 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 
 	report("string", string_buf);
 
-	yylval.val = new_node(string_buf);
+	char *buf = malloc(length + 2);
+	buf[0] = buf[length + 1] = '"';
+	strncpy(buf + 1, string_buf, length);
+
+	yylval.val = new_node(buf);
 	return STRING;
 }
 <str>\n {
