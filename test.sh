@@ -1,11 +1,13 @@
 #!/bin/bash
 
+set -u -o pipefail
+
 pcatc=./pcatc
 
 for file in $@; do
 	printf "[$file]\n"
-	logfile=`basename $file`-log.txxt
-	$pcatc $file | tee $logfile
+	logfile=`basename $file`-log.txt
+	$pcatc $file |& tee $logfile
 	if [ $? -eq 0 ]; then
 		echo -e "\033[1;32mPASS!\033[0m"
 		rm $logfile

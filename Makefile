@@ -15,15 +15,22 @@ CFLAGS := -c -ggdb3
 LDFLAGS := -lfl
 
 SRCS := $(wildcard *.c)
-OBJS := $(SRCS:.c=.o)
+OBJS := $(SRCS:.c=.o) \
+		pcatc.yy.o \
+		pcatc.tab.o
 
 all: $(pcatc_BIN)
 
-$(pcatc_BIN): $(OBJS) pcatc.yy.c
+$(pcatc_BIN): $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-pcatc.yy.c: pcatc.l
+pcatc.yy.c: pcatc.l pcatc.tab.h
 	$(LEX) -o $@ $^
+
+pcatc.tab.h pcatc.tab.c: pcatc.y
+	$(YACC) -d $^
+
+pcatc.tab.o pcatc.yy.o: ast.h
 
 test: $(pcatc_BIN)
 	@bash test.sh $(testcases)
@@ -31,6 +38,8 @@ test: $(pcatc_BIN)
 clean:
 	-rm -rf $(OBJS)
 	-rm -rf pcatc.yy.c
+	-rm -rf pcatc.tab.c pcatc.tab.h
+	-rm -rf *-log.txt
 
-dist-clean:
+dist-clean: clean
 	-rm -f $(pcatc_BIN)
