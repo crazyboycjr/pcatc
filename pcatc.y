@@ -6,10 +6,9 @@
 
 extern int yylex();
 extern int yyparse();
-void yyerror(const char *msg) {
-	fprintf(stderr, "%s\n", msg);
-}
+extern char filename[];
 
+extern void yyerror(const char *);
 /* YYPRINT is defined for use yytoknum[] */
 #define YYPRINT
 
@@ -18,6 +17,8 @@ void yyerror(const char *msg) {
 
 %}
 
+%define parse.error verbose
+%locations
 %token-table
 
 %union {
@@ -308,4 +309,9 @@ int get_token_code(char *token, int isstr)
 
 #undef NR_TOKEN
 	return 2;
+}
+
+void yyerror(const char *msg) {
+	fprintf(stderr, "\033[1;29m%s:%d:%d:\033[0m \033[1;31merror:\033[0m %s\n",
+			filename, yylloc.first_line, yylloc.first_column, msg);
 }

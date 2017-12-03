@@ -45,6 +45,8 @@ void __report_error(int lineno, int column, const char *msg) {
 			column = 1; \
 			curcolumn = yyleng + 1; \
 		} \
+		yylloc.first_column = column; \
+		yylloc.first_line = lineno; \
 	} while (0);
 
 %}
