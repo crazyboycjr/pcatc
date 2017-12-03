@@ -49,8 +49,12 @@ void yyerror(const char *msg) {
 %type <val> body
 %type <val> declaration declaration_seq
 %type <val> var_decl var_decl_seq id_comma_seq
+%type <val> type_decl type_decl_seq
+%type <val> procedure_decl procedure_decl_seq
 %type <val> type
 %type <val> component component_seq
+%type <val> formal_params
+%type <val> fp_section fp_section_semicolon_seq
 %type <val> statement statement_seq
 %type <val> write_params write_expr write_expr_comma_seq
 %type <val> if_statement elsif_statement elsif_statement_seq
@@ -66,20 +70,19 @@ void yyerror(const char *msg) {
 %%
 program:
 PROGRAM IS body ';' {
-	printf("happy\n");
-	fflush(stdout);
-	$$ = new_node("program");
-	insert($$, $3);
+	WORK("program", $$, $3);
 	ast_print_structure($$, 0);
 }
 ;
 
 body:
-declaration_seq BEGINN statement_seq END	{ WORK("body", $$, $1, $3); }
+declaration_seq BEGINN statement_seq END	{ WORK("body", $$, $1, $2, $3); }
 ;
 
-declaration:
+declaration: /* done */
   VAR var_decl_seq			{ WORK("var declaration", $$, $1, $2); }
+| TYPE type_decl_seq			{ WORK("type declaration", $$, $1, $2); }
+| PROCEDURE procedure_decl_seq		{ WORK("procedure declaration", $$, $1, $2); }
 ;
 
 declaration_seq:			{ $$ = NULL; }
@@ -99,6 +102,23 @@ id_comma_seq:				{ $$ = NULL; }
 | ',' ID id_comma_seq			{ append($2, $3); $$ = $2; }
 ;
 
+type_decl:
+ID IS type ';'				{ WORK("type-decl", $$, $1, $3); }
+;
+
+type_decl_seq:				{ $$ = NULL; }
+| type_decl type_decl_seq		{ append($1, $2); $$ = $1; }
+;
+
+procedure_decl:
+  ID formal_params IS body ';'		{ WORK("procedure-decl", $$, $1, $2, $4); }
+| ID formal_params ':' type IS body ';'	{ WORK("procedure-decl", $$, $1, $2, $4, $6); }
+;
+
+procedure_decl_seq:			{ $$ = NULL; }
+| procedure_decl procedure_decl_seq	{ append($1, $2); $$ = $1; }
+;
+
 type:
   ID					{ WORK("type", $$, $1); }
 | ARRAY OF type				{ WORK("array type", $$, $3); }
@@ -112,6 +132,20 @@ ID ':' type ';'				{ WORK("component", $$, $1, $3); }
 component_seq:				{ $$ = NULL; }
 | component component_seq		{ append($1, $2); $$ = $1; }
 ;
+
+formal_params:
+  '(' fp_section fp_section_semicolon_seq ')'	{ WORK("formal_params", $$, $2, $3); }
+| '(' ')'	{ struct ast_node *p = new_node("()"); WORK("formal-params", $$, p); }
+;
+
+fp_section:
+ID id_comma_seq ':' type		{ WORK("fp-section", $$, $1, $2, $4); }
+;
+
+fp_section_semicolon_seq:		{ $$ = NULL; }
+| ';' fp_section fp_section_semicolon_seq	{ append($2, $3); $$ = $2; }
+;
+
 
 statement: /* done */
   l_value ":=" expression ';'		{ WORK("assignment statement", $$, $1, $3); }
