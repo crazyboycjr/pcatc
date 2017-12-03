@@ -28,9 +28,9 @@ void yyerror(const char *msg) {
 %token <val> INTEGER REAL
 
 /* binary-op */
+%left <val> '>' '<' '=' ">=" "<=" "<>"
 %left <val> '+' '-' OR
 %left <val> '*' '/' DIV MOD AND
-%left <val> '>' '<' '=' ">=" "<=" "<>"
 %precedence <val> UNARY NOT
 
 %type <val> program
@@ -38,7 +38,7 @@ void yyerror(const char *msg) {
 %type <val> expression
 %type <val> number
 %type <val> unary_op
-%type <val> binary_op
+%type <val> binary_op1 binary_op2 binary_op3
 
 %%
 program:
@@ -63,8 +63,11 @@ BEGINN expression END {
 expression:
   number		{ WORK("expression", $$, $1); }
 | '(' expression ')'	{ WORK("expression", $$, $2); } /* put away the '()' */
-| unary_op expression	{ WORK("expression", $$, $1, $2); }
-| expression binary_op expression { WORK("expression", $$, $1, $2, $3); }
+| unary_op expression %prec UNARY { WORK("expression", $$, $1, $2); }
+/* expand binary_op */
+| expression binary_op1 expression %prec '>' { WORK("expression", $$, $1, $2, $3); }
+| expression binary_op2 expression %prec '+' { WORK("expression", $$, $1, $2, $3); }
+| expression binary_op3 expression %prec '*' { WORK("expression", $$, $1, $2, $3); }
 ;
 
 
@@ -73,27 +76,32 @@ INTEGER	{ WORK("number", $$, $1); }
 | REAL	{ WORK("number", $$, $1); }
 ;
 
-unary_op:
+unary_op: /* done */
   '+' %prec UNARY { WORK("unary-op", $$, $1); }
 | '-' %prec UNARY { WORK("unary-op", $$, $1); }
 | NOT		{ WORK("unary-op", $$, $1); }
 ;
 
-binary_op: /* done */
-  '+'	{ WORK("binary-op", $$, $1); }
-| '-'	{ WORK("binary-op", $$, $1); }
-| '*'	{ WORK("binary-op", $$, $1); }
-| '/'	{ WORK("binary-op", $$, $1); }
-| DIV	{ WORK("binary-op", $$, $1); }
-| MOD	{ WORK("binary-op", $$, $1); }
-| OR	{ WORK("binary-op", $$, $1); }
-| AND	{ WORK("binary-op", $$, $1); }
-| '>'	{ WORK("binary-op", $$, $1); }
+/* binary_op done */
+binary_op1:
+  '>'	{ WORK("binary-op", $$, $1); }
 | '<'	{ WORK("binary-op", $$, $1); }
 | '='	{ WORK("binary-op", $$, $1); }
 | ">="	{ WORK("binary-op", $$, $1); }
 | "<="	{ WORK("binary-op", $$, $1); }
 | "<>"	{ WORK("binary-op", $$, $1); }
+;
+binary_op2: 
+  '+'	{ WORK("binary-op", $$, $1); }
+| '-'	{ WORK("binary-op", $$, $1); }
+| OR	{ WORK("binary-op", $$, $1); }
+;
+binary_op3:
+  '*'	{ WORK("binary-op", $$, $1); }
+| '/'	{ WORK("binary-op", $$, $1); }
+| DIV	{ WORK("binary-op", $$, $1); }
+| MOD	{ WORK("binary-op", $$, $1); }
+| AND	{ WORK("binary-op", $$, $1); }
 ;
 %%
 
