@@ -5,6 +5,7 @@ pcatc
 *.yy.c
 *.tab.c
 *.tab.h
+*-log.txt
 
 # testcases
 tests/

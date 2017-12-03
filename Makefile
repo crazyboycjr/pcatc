@@ -39,6 +39,7 @@ clean:
 	-rm -rf $(OBJS)
 	-rm -rf pcatc.yy.c
 	-rm -rf pcatc.tab.c pcatc.tab.h
+	-rm -rf *-log.txt
 
 dist-clean: clean
 	-rm -f $(pcatc_BIN)

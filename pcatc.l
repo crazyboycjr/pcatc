@@ -18,7 +18,7 @@ void __report(const char *type, char *text) {
 	fprintf(yyout, "At (%d, %d) Found %s: %s\n", lineno, column, type, text);
 }
 
-//#define STAGE2
+#define STAGE2
 
 #ifndef STAGE2
 #define report(...) __report(__VA_ARGS__)
