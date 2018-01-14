@@ -3,11 +3,12 @@
 #include <string.h>
 #include <assert.h>
 
+#include "list.h"
 #include "ast.h"
 
 #include <llvm-c/Core.h>
 
-static inline report_error(int lineno, const char *msg)
+static inline void report_error(int lineno, const char *msg)
 {
 	fprintf(stderr, "lineno:%d, %s\n", lineno, msg);
 	exit(1);
@@ -16,15 +17,48 @@ static inline report_error(int lineno, const char *msg)
 static LLVMModuleRef global_unique_module;
 static LLVMBuilderRef global_unique_builder;
 
+static inline int eq(const char *s1, const char *s2)
+{
+	return strcmp(s1, s2) == 0;
+}
+
+struct identifier_node {
+	struct list_head list;
+	char *name;
+	char expr_type;
+	LLVMValueRef value;
+};
+
+static struct identifier_node *identifier_head;
+
+static struct identifier_node id_pool[100000];
+
+static inline struct identifier_node *new_identifier_node(char *name)
+{
+	static int top = 0;
+	struct identifier_node *p = &id_pool[top++];
+	INIT_LIST_HEAD(&p->list);
+	p->name = name;
+	p->expr_type = 0;
+	p->value = NULL;
+	return p;
+}
+
+static inline struct identifier_node *find_identifier(const char *name)
+{
+	struct identifier_node *pos;
+	list_for_each_entry(pos, &identifier_head->list, list)
+		if (eq(pos->name, name))
+			return pos;
+	return NULL;
+}
+
 static void init()
 {
 	global_unique_module = LLVMModuleCreateWithName("PCAT Main Module");
 	global_unique_builder = LLVMCreateBuilder();
-}
 
-static inline int eq(const char *s1, const char *s2)
-{
-	return strcmp(s1, s2) == 0;
+	identifier_head = new_identifier_node("");
 }
 
 static inline char *repeat(const char *str, int n)
@@ -68,6 +102,7 @@ handle(write_statement, node)
 		format[i * 2 + 1] = node->lc->rb->data.expr_type_list[i];
 	}
 	format[argc * 2] = '\n';
+	format[argc * 2 + 1] = '\0';
 	args[0] = LLVMBuildGlobalStringPtr(
 		global_unique_builder, format, "format"
 	);
@@ -133,7 +168,7 @@ handle(INTEGER, node)
 {
 	node->data.expr_type = 'd';
 	node->data.value = LLVMConstInt(
-		LLVMInt32Type(), atoi(node->data.name), 1
+		LLVMInt32Type(), atoi(node->data.name), 0
 	);
 }
 
@@ -253,6 +288,92 @@ handle(binary_op_expression, node)
 		handle_real_expression(node, lc, op->data.type, rc);
 }
 
+handle(var_decl, node)
+{
+	struct ast_node *bn = node;
+	forchild(node, c) {
+		if (eq(c->data.type, "type")) {
+			bn = c;
+			break;
+		}
+	}
+	char expr_type = 0;
+	LLVMValueRef value;
+	if (eq(bn, "type")) {
+		char *id_type = bn->data.name;
+		if (eq(id_type, "INTEGER")) {
+			expr_type = 'd';
+		} else if (eq(id_type, "REAL")) {
+			expr_type = 'f';
+		} else if (eq(id_type, "STRING")) {
+			expr_type = 's';
+		} else {
+			assert(0);
+		}
+
+		if (bn->rb->data.type, "simple expression") {
+			assert(bn->rb->data.expr_type == expr_type);
+		} else {
+			assert(0);
+		}
+		
+	} else {
+		forchild(node, c)
+			if (eq(c->data.type, "simple expression")) {
+				bn = c;
+				break;
+			}
+	}
+	if (eq(bn->data.type, "simple expression")) {
+		expr_type = bn->data.expr_type;
+		value = bn->data.value;
+	} else {
+		assert(0);
+	}
+
+	forchild(node, c)
+		if (eq(c->data.type, "identifier")) {
+			struct identifier_node *id = find_identifier(c->data.name);
+			id->expr_type = expr_type;
+			id->value = value;
+		}
+
+}
+
+handle(identifier, node)
+{
+	struct identifier_node *id = find_identifier(node->data.name);
+
+	if (eq(node->fa->data.type, "type"))
+		return NULL;
+
+	if (eq(node->fa->data.type, "var-decl")) {
+		if (id)
+			report_error(node->data.lineno, "redefinition of variable");
+
+		id = new_identifier_node(node->data.name);
+
+		list_add(id, identifier_head);
+	} else {
+		if (!id)
+			report_error(node->data.lineno, "undefined variable");
+	}
+
+	node->data.expr_type = id->expr_type;
+	node->data.value = id->value;
+	return id;
+}
+
+handle(l_value, node)
+{
+	if (eq(node->lc->data.type, "identifier")) {
+		node->data.expr_type = node->lc->data.expr_type;
+		node->data.value = node->lc->data.value;
+	} else {
+		assert(0);
+	}
+}
+
 void traverse(struct ast_node *node)
 {
 	if (!node) return;
@@ -288,6 +409,13 @@ void traverse(struct ast_node *node)
 		handle_binary_op(node);
 	if (match("binary-op expression"))
 		handle_binary_op_expression(node);
+
+	if (match("var-decl"))
+		handle_var_decl(node);
+	if (match("identifier"))
+		handle_identifier(node);
+	if (match("l-value"))
+		handle_l_value(node);
 
 #undef match
 }

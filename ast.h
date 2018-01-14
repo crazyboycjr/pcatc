@@ -29,6 +29,7 @@ static inline char *inspect(struct ast_data *data)
 }
 
 struct ast_node {
+	struct ast_node *fa;
 	struct ast_node *lc, *rb; // left child, right brother
 	struct ast_data data;
 };
@@ -61,6 +62,7 @@ static void ast_print_structure(struct ast_node *root, int depth)
 static inline void ast_insert(struct ast_node *a, struct ast_node *b)
 {
 	struct ast_node *lc = a->lc;
+	if (b) b->fa = a;
 	if (!lc) {
 		a->lc = b;
 		if (b)
@@ -75,8 +77,11 @@ static inline void ast_insert(struct ast_node *a, struct ast_node *b)
 static inline void ast_append(struct ast_node *a, struct ast_node *b)
 {
 	struct ast_node *rb = a->rb;
+	if (b) b->fa = a->fa;
 	if (!rb) {
 		a->rb = b;
+		if (b)
+			b->fa = a->fa;
 		return;
 	}
 	while (rb->rb)
@@ -86,6 +91,9 @@ static inline void ast_append(struct ast_node *a, struct ast_node *b)
 
 #define forchild(n, c) \
 	for (struct ast_node *c = n->lc; c; c = c->rb)
+
+#define forbro(n, b) \
+	for (struct ast_node *b = n->rb; b; b = b->rb)
 
 #define new_node(args...) ast_new_node(args)
 
