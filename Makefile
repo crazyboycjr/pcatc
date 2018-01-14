@@ -6,7 +6,7 @@ LEX := flex
 YACC := bison
 
 TEST_DIR := tests
-testcases := $(TEST_DIR)/test01.pcat #$(TEST_DIR)/test02.pcat
+testcases := $(TEST_DIR)/test01.pcat $(TEST_DIR)/test03.pcat
 #testcases := $(shell find $(TEST_DIR) -name "*.pcat")
 
 pcatc_BIN = pcatc

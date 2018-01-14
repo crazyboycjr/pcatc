@@ -168,7 +168,7 @@ handle(INTEGER, node)
 {
 	node->data.expr_type = 'd';
 	node->data.value = LLVMConstInt(
-		LLVMInt32Type(), atoi(node->data.name), 0
+		LLVMInt32Type(), atoi(node->data.name), 1
 	);
 }
 
@@ -202,7 +202,7 @@ static inline void handle_integer_expression(struct ast_node *node,
 					     char *op,
 					     struct ast_node *rc)
 {
-	node->data.expr_type = lc->data.expr_type;
+	node->data.expr_type = 'd';
 	if (eq(op, "+")) {
 		node->data.value = LLVMBuildAdd(global_unique_builder,
 						lc->data.value,
@@ -223,7 +223,7 @@ static inline void handle_integer_expression(struct ast_node *node,
 						      lc->data.value,
 						      rc->data.value,
 						      "A DIV B");
-	} else if (eq(op, "DIV")) {
+	} else if (eq(op, "MOD")) {
 		LLVMValueRef tmp = LLVMBuildExactSDiv(global_unique_builder,
 						      lc->data.value,
 						      rc->data.value,
@@ -232,6 +232,8 @@ static inline void handle_integer_expression(struct ast_node *node,
 						 tmp, rc->data.value, "");
 		node->data.value = LLVMBuildSub(global_unique_builder,
 						lc->data.value, tmp2, "");
+	} else if (eq(op, "/")) {
+		report_error(node->data.lineno, "error use / between INTEGERs");
 	} else {
 		assert(0);
 	}
@@ -243,30 +245,33 @@ static inline void handle_real_expression(struct ast_node *node,
 					  char *op,
 					  struct ast_node *rc)
 {
+	node->data.expr_type = 'f';
+	LLVMValueRef lhs = lc->data.value;
+	LLVMValueRef rhs = rc->data.value;
+	if (lc->data.expr_type == 'd') {
+		lhs = LLVMBuildSIToFP(global_unique_builder,
+				      lc->data.value, LLVMDoubleType(), "");
+	}
+	if (rc->data.expr_type == 'd') {
+		rhs = LLVMBuildSIToFP(global_unique_builder,
+				      rc->data.value, LLVMDoubleType(), "");
+	}
 	if (eq(op, "+")) {
-		node->data.expr_type = lc->data.expr_type;
 		node->data.value = LLVMBuildFAdd(global_unique_builder,
-						lc->data.value,
-						rc->data.value,
-						"A + B"); //lc->data.name + rc->data.name
+						 lhs, rhs,
+						 "A + B"); //lc->data.name + rc->data.name
 	} else if (eq(op, "-")) {
-		node->data.expr_type = lc->data.expr_type;
 		node->data.value = LLVMBuildFSub(global_unique_builder,
-						lc->data.value,
-						rc->data.value,
-						"A - B");
+						 lhs, rhs,
+						 "A - B");
 	} else if (eq(op, "*")) {
-		node->data.expr_type = lc->data.expr_type;
 		node->data.value = LLVMBuildFMul(global_unique_builder,
-						lc->data.value,
-						rc->data.value,
-						"A * B");
+						 lhs, rhs,
+						 "A * B");
 	} else if (eq(op, "/")) {
-		node->data.expr_type = lc->data.expr_type;
 		node->data.value = LLVMBuildFDiv(global_unique_builder,
-						lc->data.value,
-						rc->data.value,
-						"A / B");
+						 lhs, rhs,
+						 "A / B");
 	} else {
 		assert(0);
 	}
@@ -278,13 +283,13 @@ handle(binary_op_expression, node)
 	struct ast_node *op = node->lc->rb;
 	struct ast_node *rc = node->lc->rb->rb;
 
-	if (lc->data.expr_type != rc->data.expr_type)
-		report_error(node->data.lineno, "lhs type != rhs type");
+	//if (lc->data.expr_type != rc->data.expr_type)
+	//	report_error(node->data.lineno, "lhs type != rhs type");
 
 	char expr_type = lc->data.expr_type;
-	if (expr_type == 'd')
+	if (lc->data.expr_type == 'd' && rc->data.expr_type == 'd')
 		handle_integer_expression(node, lc, op->data.type, rc);
-	if (expr_type == 'f')
+	else
 		handle_real_expression(node, lc, op->data.type, rc);
 }
 
@@ -374,6 +379,28 @@ handle(l_value, node)
 	}
 }
 
+handle(unary_op_expression, node)
+{
+	if (eq(node->lc->lc->data.type, "-")) {
+		node->data.expr_type = node->lc->rb->data.expr_type;
+		node->data.value = LLVMBuildNeg(global_unique_builder,
+						node->lc->rb->data.value,
+						"neg");
+	} else {
+		assert(0);
+	}
+}
+
+handle(assignment_statement, node)
+{
+	struct identifier_node *id = find_identifier(node->lc->lc->data.name);
+	if (!id)
+		report_error(node->data.lineno, "undefined variable");
+
+	id->expr_type = node->lc->rb->data.expr_type;
+	id->value = node->lc->rb->data.value;
+}
+
 void traverse(struct ast_node *node)
 {
 	if (!node) return;
@@ -416,6 +443,11 @@ void traverse(struct ast_node *node)
 		handle_identifier(node);
 	if (match("l-value"))
 		handle_l_value(node);
+	if (match("unary-op expression"))
+		handle_unary_op_expression(node);
+
+	if (match("assignment statement"))
+		handle_assignment_statement(node);
 
 #undef match
 }
