@@ -74,7 +74,7 @@ extern void yyerror(const char *);
 program:
 PROGRAM IS body ';' {
 	WORK("program", $$, $3);
-	ast_print_structure($$, 0);
+	ast_print_structure($$, 0); fflush(stdout);
 	codegen($$);
 }
 ;

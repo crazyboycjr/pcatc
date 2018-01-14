@@ -7,10 +7,18 @@
 struct ast_data {
 	// here we simply use char * to represent type;
 	char *type, *name;
-	LLVMValueRef value;
+	char expr_type;
+	union {
+		LLVMValueRef value;
 
-	int len;
-	LLVMValueRef value_list[128]; // a sock!!!
+		struct {
+			int len;
+			LLVMValueRef value_list[128]; // a sock!!!
+			char expr_type_list[128];
+		};
+	};
+
+	int lineno, column;
 };
 
 static inline char *inspect(struct ast_data *data)
@@ -55,6 +63,8 @@ static inline void ast_insert(struct ast_node *a, struct ast_node *b)
 	struct ast_node *lc = a->lc;
 	if (!lc) {
 		a->lc = b;
+		if (b)
+			a->data.lineno = b->data.lineno;
 		return;
 	}
 	while (lc->rb)
