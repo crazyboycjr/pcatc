@@ -29,3 +29,20 @@ In stage 2, we implement
 - basic syntax error report (with error locations).
 
 What I still want to improve is to provide more language relevant scanner messages. I found a [webpage](https://www.freepascal.org/docs-html/user/userse61.html) lists some Free Pascal compiling error messages.
+
+## Stage 3
+```
+make test
+```
+will display the test result.
+
+```
+./pcatc [input]
+```
+will output the AST to stdout and the LLVM IR code to stderr, we can type
+```
+$pcatc $file 2>&1 >&- >/dev/null | lli
+```
+to directly execute programs from LLVM bitcode.
+
+Currently, the code can pass `test01.pcat`.
