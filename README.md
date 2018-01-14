@@ -45,6 +45,6 @@ $pcatc $file 2>&1 >&- >/dev/null | lli
 ```
 to directly execute programs from LLVM bitcode.
 
-![screenshot](http://github.com/crazyboycjr/pcatc/screenshot.png)
+![screenshot](https://github.com/crazyboycjr/pcatc/blob/stage-3/screenshot.png)
 
 Currently, the code can pass `test01.pcat` and `test03.pcat`.
