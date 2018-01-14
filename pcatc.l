@@ -92,7 +92,8 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 	report("reserved keyword", yytext);
 	/* special judge with reserved keyword `BEGIN` */
 
-	yylval.val = new_node(yytext);
+	yylval.val = new_node(yytext, "");
+	yylval.val->data.lineno = lineno;
 	if (strcmp(yytext, "BEGIN") == 0)
 		return BEGINN;
 
@@ -101,7 +102,8 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 ":="|"+"|"-"|"*"|"/"|"<"|"<="|">"|">="|"="|"<>" {
 	report("operator", yytext);
 
-	yylval.val = new_node(yytext);
+	yylval.val = new_node(yytext, "");
+	yylval.val->data.lineno = lineno;
 	if (strlen(yytext) == 1)
 		return yytext[0];
 
@@ -110,7 +112,8 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 ":"|";"|","|"."|"("|")"|"["|"]"|"{"|"}"|"[<"|">]"|"\\" {
 	report("delimiter", yytext);
 
-	yylval.val = new_node(yytext);
+	yylval.val = new_node(yytext, "");
+	yylval.val->data.lineno = lineno;
 	if (strlen(yytext) == 1)
 		return yytext[0];
 
@@ -126,13 +129,17 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 
 	report("integer", yytext);
 
-	yylval.val = new_node(yytext);
+	yylval.val = new_node("INTEGER", yytext);
+	yylval.val->data.lineno = lineno;
+	yylval.val->data.expr_type = 'd';
 	return INTEGER;
 }
 {REAL} {
 	report("real", yytext);
 
-	yylval.val = new_node(yytext);
+	yylval.val = new_node("REAL", yytext);
+	yylval.val->data.lineno = lineno;
+	yylval.val->data.expr_type = 'f';
 	return REAL;
 }
 
@@ -160,7 +167,9 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 	buf[0] = buf[length + 1] = '"';
 	strncpy(buf + 1, string_buf, length);
 
-	yylval.val = new_node(buf);
+	yylval.val = new_node("STRING", buf);
+	yylval.val->data.lineno = lineno;
+	yylval.val->data.expr_type = 's';
 	return STRING;
 }
 <str>\n {
@@ -190,7 +199,8 @@ AND|ARRAY|BEGIN|BY|DIV|DO|ELSE|ELSIF|END|EXIT|FOR|IF|IN|IS|LOOP|MOD|NOT|OF|OR|OU
 
 	report("identifier", yytext);
 
-	yylval.val = new_node(yytext);
+	yylval.val = new_node("identifier", yytext);
+	yylval.val->data.lineno = lineno;
 	return ID;
 }
 . {

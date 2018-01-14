@@ -6,13 +6,13 @@ LEX := flex
 YACC := bison
 
 TEST_DIR := tests
-#testcases := $(TEST_DIR)/test20.pcat
-testcases := $(shell find $(TEST_DIR) -name "*.pcat")
+testcases := $(TEST_DIR)/test01.pcat #$(TEST_DIR)/test02.pcat
+#testcases := $(shell find $(TEST_DIR) -name "*.pcat")
 
 pcatc_BIN = pcatc
 
-CFLAGS := -c -ggdb3
-LDFLAGS := -lfl
+CFLAGS := -c -ggdb3 `llvm-config --cflags | sed -e 's/-DNDEBUG//'`
+LDFLAGS := -lfl `llvm-config --ldflags --libs`
 
 SRCS := $(wildcard *.c)
 OBJS := $(SRCS:.c=.o) \

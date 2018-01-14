@@ -4,6 +4,8 @@
 
 #include "ast.h"
 
+extern int codegen(struct ast_node *);
+
 extern int yylex();
 extern int yyparse();
 extern char filename[];
@@ -13,7 +15,7 @@ extern void yyerror(const char *);
 #define YYPRINT
 
 /* some macros for compress code */
-#define WORK(name, p, ...) p = new_node(name); insert(p, ##__VA_ARGS__)
+#define WORK(name, p, ...) p = new_node(name, ""); insert(p, ##__VA_ARGS__)
 
 %}
 
@@ -72,7 +74,8 @@ extern void yyerror(const char *);
 program:
 PROGRAM IS body ';' {
 	WORK("program", $$, $3);
-	ast_print_structure($$, 0);
+	ast_print_structure($$, 0); fflush(stdout);
+	codegen($$);
 }
 ;
 
@@ -136,7 +139,7 @@ component_seq:				{ $$ = NULL; }
 
 formal_params:
   '(' fp_section fp_section_semicolon_seq ')'	{ WORK("formal_params", $$, $2, $3); }
-| '(' ')'	{ struct ast_node *p = new_node("()"); WORK("formal-params", $$, p); }
+| '(' ')'	{ struct ast_node *p = new_node("()", ""); WORK("formal-params", $$, p); }
 ;
 
 fp_section:
@@ -185,7 +188,7 @@ elsif_statement_seq:			{ $$ = NULL; }
 
 write_params: /* TODO(cjr) do not build extra node */
   '(' write_expr write_expr_comma_seq ')'	{ WORK("write-params", $$, $2, $3); }
-| '(' ')'	{ struct ast_node *p = new_node("()"); WORK("write-params", $$, p); }
+| '(' ')'	{ struct ast_node *p = new_node("()", ""); WORK("write-params", $$, p); }
 ;
 
 write_expr:
@@ -221,7 +224,7 @@ l_value_comma_seq:			{ $$ = NULL; }
 
 actual_params: /* done */
 '(' expression expression_comma_seq ')' { WORK("actual-prarms", $$, $2, $3); }
-| '(' ')'	{ struct ast_node *p = new_node("()"); WORK("actual-params", $$, p); }
+| '(' ')'	{ struct ast_node *p = new_node("()", ""); WORK("actual-params", $$, p); }
 ;
 
 expression_comma_seq: /* done */	{ $$ = NULL; }

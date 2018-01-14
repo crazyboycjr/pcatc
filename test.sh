@@ -7,7 +7,7 @@ pcatc=./pcatc
 for file in $@; do
 	printf "[$file]\n"
 	logfile=`basename $file`-log.txt
-	$pcatc $file |& tee $logfile
+	$pcatc $file 2>&1 >&- >/dev/null | lli |& tee $logfile
 	if [ $? -eq 0 ]; then
 		echo -e "\033[1;32mPASS!\033[0m"
 		rm $logfile
