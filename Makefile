@@ -11,8 +11,8 @@ testcases := $(shell find $(TEST_DIR) -name "*.pcat")
 
 pcatc_BIN = pcatc
 
-CFLAGS := -c -ggdb3
-LDFLAGS := -lfl
+CFLAGS := -c -ggdb3 `llvm-config --cflags`
+LDFLAGS := -lfl `llvm-config --ldflags --libs`
 
 SRCS := $(wildcard *.c)
 OBJS := $(SRCS:.c=.o) \

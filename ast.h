@@ -1,8 +1,24 @@
 #pragma once
 
+#include <stdlib.h>
+
+#include <llvm-c/Core.h>
+
 struct ast_data {
-	char *name;
+	// here we simply use char * to represent type;
+	char *type, *name;
+	LLVMValueRef value;
+
+	int len;
+	LLVMValueRef value_list[128]; // a sock!!!
 };
+
+static inline char *inspect(struct ast_data *data)
+{
+	char *s = malloc(strlen(data->type) + strlen(data->name) + 4);
+	sprintf(s, "%s: %s", data->type, data->name);
+	return s;
+}
 
 struct ast_node {
 	struct ast_node *lc, *rb; // left child, right brother
@@ -11,12 +27,15 @@ struct ast_node {
 
 static struct ast_node pool[100000];
 
-static inline struct ast_node *ast_new_node(char *name)
+static inline struct ast_node *ast_new_node(const char *type, const char *name)
 {
 	static int top = 0;
 	struct ast_node *p = &pool[top++];
 	p->lc = p->rb = NULL;
+	p->data.type = strdup(type);
 	p->data.name = strdup(name);
+	p->data.value = NULL;
+	p->data.len = 0;
 	return p;
 }
 
@@ -25,7 +44,7 @@ static void ast_print_structure(struct ast_node *root, int depth)
 	if (!root) return;
 	for (int i = 0; i < depth; i++)
 		putchar(' ');
-	printf("%s\n", root->data.name);
+	printf("%s\n", inspect(&root->data));
 
 	ast_print_structure(root->lc, depth + 2);
 	ast_print_structure(root->rb, depth);
@@ -54,6 +73,9 @@ static inline void ast_append(struct ast_node *a, struct ast_node *b)
 		rb = rb->rb;
 	rb->rb = b;
 }
+
+#define forchild(n, c) \
+	for (struct ast_node *c = n->lc; c; c = c->rb)
 
 #define new_node(args...) ast_new_node(args)
 
